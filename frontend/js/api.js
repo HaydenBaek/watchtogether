@@ -1,6 +1,6 @@
 // All calls to the backend live here.
 // Change this one line when you deploy the backend.
-const API_BASE_URL = 'http://localhost:3000/api/v1';
+const API_BASE_URL = 'http://localhost:4537/api/v1';
 
 // Sends a request and returns { status, data }. Never throws on HTTP errors.
 // credentials: 'include' makes the browser send the login cookie.
