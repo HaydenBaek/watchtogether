@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WatchTogether - Admin</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="top-bar">
+    <h1>Admin: Registered Users</h1>
+    <button id="logout-button">Logout</button>
+  </div>
+
+  <p id="status" class="message"></p>
+
+  <table id="users-table" hidden>
+    <thead>
+      <tr><th>ID</th><th>Email</th><th>Role</th><th>Created</th></tr>
+    </thead>
+    <tbody id="users-body"></tbody>
+  </table>
+
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>
