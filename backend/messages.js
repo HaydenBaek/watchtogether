@@ -1,0 +1,21 @@
+// All messages the backend sends to the client live here.
+export const messages = {
+  invalidEmail: 'Please enter a valid email address.',
+  passwordRequired: 'Password is required.',
+  emailTaken: 'That email is already registered.',
+  registered: 'Account created. You can now log in.',
+  badCredentials: 'Wrong email or password.',
+  loggedIn: 'Logged in.',
+  loggedOut: 'Logged out.',
+  notLoggedIn: 'You need to log in first.',
+  sessionExpired: 'Your session is invalid or expired. Please log in again.',
+  notAdmin: 'Admins only.',
+  userNotFound: 'User not found.',
+  textMustBeString: 'Text fields must be strings.',
+  likesRequired: 'Please tell us what you feel like watching.',
+  textTooLong: 'Text must be 300 characters or less.',
+  tmdbFailed: 'Could not get movies right now. Please try again.',
+  modelFailed: 'Could not understand your request right now. Please try again.',
+  serverError: 'Something went wrong on the server.',
+  notFound: 'Route not found.',
+};
