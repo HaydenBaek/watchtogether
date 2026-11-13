@@ -18,4 +18,5 @@ export const messages = {
   modelFailed: 'Could not understand your request right now. Please try again.',
   serverError: 'Something went wrong on the server.',
   notFound: 'Route not found.',
+  badRequest: 'The request could not be read.',
 };
