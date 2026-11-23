@@ -30,6 +30,11 @@ async function loadUsers() {
   try {
     const result = await getAllUsers();
 
+    // 401 means "not logged in": go back to the login page.
+    if (result.status === 401) {
+      window.location.href = 'index.html';
+      return;
+    }
     // The server decides who is an admin. 403 means "logged in but not admin".
     if (result.status === 403) {
       statusText.textContent = messages.notAdmin;
