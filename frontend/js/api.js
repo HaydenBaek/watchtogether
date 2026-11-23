@@ -1,6 +1,6 @@
 // All calls to the backend live here.
 // Put your deployed backend URL here (ending in /api/v1).
-const PRODUCTION_API_URL = 'https://watchtogether-api.onrender.com/api/v1';
+const PRODUCTION_API_URL = 'https://watchtogether-api-n4lb.onrender.com/api/v1';
 const LOCAL_API_URL = 'http://localhost:4537/api/v1';
 
 // Uses the local backend when the page itself is opened from localhost.
