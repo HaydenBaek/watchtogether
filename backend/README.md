@@ -55,9 +55,14 @@ npm run seed
 Creates `john@john.com` / `123` (user) and `admin@admin.com` / `111` (admin).
 
 ## 5. Download the model (first time only)
-With `ALLOW_MODEL_DOWNLOAD=true`, run `npm start`. The model downloads into `backend/models`. When "AI model ready." prints, stop the server (Ctrl+C).
+```
+npm run download-model
+```
+This downloads [MoritzLaurer/deberta-v3-xsmall-zeroshot-v1.1-all-33](https://huggingface.co/MoritzLaurer/deberta-v3-xsmall-zeroshot-v1.1-all-33) into `backend/models/MoritzLaurer/deberta-v3-xsmall-zeroshot-v1.1-all-33/`:
+- `onnx/model_quantized.onnx` (~87 MB, 8-bit quantized weights, the file the server runs)
+- `tokenizer.json`, `tokenizer_config.json`, `config.json`
 
-Then set `ALLOW_MODEL_DOWNLOAD=false` and start again. The server now uses only the local files, which shows the model is self-hosted. (If the model files are missing, startup fails.)
+Then set `ALLOW_MODEL_DOWNLOAD=false`. The server now uses only the local files, which shows the model is self-hosted. (If the model files are missing, startup fails.) The quantized model keeps the server around 420 MB of RAM, so it fits a 512 MB free hosting plan.
 
 ## 6. Run locally
 ```
@@ -75,13 +80,23 @@ Cookies with `sameSite: lax` work between `localhost:5500` and `localhost:4537` 
 
 If something else already uses your port, you'll see `EADDRINUSE`. Pick another `PORT` and update `api.js`.
 
-## 7. Deploy
-**Backend** (`[BACKEND HOST]`):
-1. Set the environment variables from `.env.example` on the host, with `NODE_ENV=production` and `CLIENT_ORIGIN` set to the real frontend URL.
-2. Run `schema.sql` and the seed script against the production database.
-3. Make sure the `models` folder is on the server (run once with `ALLOW_MODEL_DOWNLOAD=true`, or upload it), then set `ALLOW_MODEL_DOWNLOAD=false`.
-4. Start with `npm start`. The backend must use HTTPS, because production cookies are `secure` + `sameSite: none`.
+## 7. Deploy (Render, free plan)
+`render.yaml` in the repo root describes all three pieces: the API (Node web service), the client (static site, a different origin) and a PostgreSQL database.
 
-**Frontend** (`[FRONTEND HOST]`):
-1. In `frontend/js/api.js`, change `API_BASE_URL` to your deployed backend URL (ending in `/api/v1`).
-2. Upload the `frontend` folder as static files.
+1. Push the code to GitHub.
+2. Render dashboard → **New → Blueprint** → pick this repo → **Apply**. Keep the service names `watchtogether-api` and `watchtogether-client` so the URLs are predictable. When asked, enter `TMDB_TOKEN` (your TMDB API Read Access Token). `CLIENT_ORIGIN` is preset to `https://watchtogether-client.onrender.com`.
+3. What Render does:
+   - **Build:** `npm ci && npm run download-model` puts the model files in `backend/models` on the server.
+   - **Start:** `node scripts/setupDb.js && node server.js` creates the tables if missing, creates the demo accounts if missing, then starts the API with `ALLOW_MODEL_DOWNLOAD=false` (local model files only). The log shows `AI model ready. Running local file: .../onnx/model_quantized.onnx`.
+4. If Render added a suffix to either name (because it was taken), update **both** `CLIENT_ORIGIN` (API service → Environment) and `PRODUCTION_API_URL` in `frontend/js/api.js`, then push.
+5. Check `https://<api-url>/api/v1/health` returns `{"status":"ok"}`, then log in on the client URL in **Chrome**.
+
+Notes:
+- **Memory:** the free plan has 512 MB. Measured in a 512 MB Linux container with these exact commands, the server uses about 430 MB (RSS) and survived 40 AI requests, 4 at a time. Three settings keep it there; don't undo them: the 8-bit model (`dtype: 'q8'`), ONNX graph optimizations turned off (`aiModel.js`), and starting with `node` directly instead of `npm start` (an npm wrapper process costs about 60 MB). If the API still restarts with an out-of-memory error, it needs a paid instance.
+- **`.npmrc`:** on Linux, `onnxruntime-node` tries to download CUDA (GPU) binaries during `npm ci`, and that download 404s and fails the build. `backend/.npmrc` (and `ONNXRUNTIME_NODE_INSTALL_CUDA=skip` in `render.yaml`) skips it. We only use the CPU.
+- **Cold starts:** free services sleep after 15 minutes without traffic, and the first request after that takes about a minute. Open `https://<api-url>/api/v1/health` a few minutes before a demo or marking.
+- **Database expiry:** Render's free PostgreSQL expires about 30 days after it's created. That's fine for Milestone 1. Before then, point `DATABASE_URL` at a permanent database (e.g. Neon's free tier); `setupDb.js` creates the tables on the next start.
+- HTTPS is provided by Render. It is required, because production cookies are `secure` + `sameSite: none`. Safari may block this cross-site cookie; test in Chrome.
+- No shell is needed: `setupDb.js` can be rerun safely (`CREATE TABLE IF NOT EXISTS`, `ON CONFLICT DO NOTHING`).
+
+**Other hosts (e.g. Railway):** root directory `backend`. Set the variables from `.env.example` (`NODE_ENV=production`, `ALLOW_MODEL_DOWNLOAD=false`). Build with `npm ci && npm run download-model`, start with `node scripts/setupDb.js && node server.js`, and serve the `frontend` folder as static files from a different origin.
