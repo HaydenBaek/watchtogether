@@ -1,6 +1,11 @@
 // All calls to the backend live here.
-// Change this one line when you deploy the backend.
-const API_BASE_URL = 'http://localhost:4537/api/v1';
+// Put your deployed backend URL here (ending in /api/v1).
+const PRODUCTION_API_URL = 'https://watchtogether-api.onrender.com/api/v1';
+const LOCAL_API_URL = 'http://localhost:4537/api/v1';
+
+// Uses the local backend when the page itself is opened from localhost.
+const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const API_BASE_URL = isLocal ? LOCAL_API_URL : PRODUCTION_API_URL;
 
 // Sends a request and returns { status, data }. Never throws on HTTP errors.
 // credentials: 'include' makes the browser send the login cookie.
