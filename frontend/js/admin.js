@@ -9,7 +9,13 @@ const tableBody = document.getElementById('users-body');
 // Adds one table row for a user. textContent keeps the data safe.
 function addUserRow(user) {
   const row = document.createElement('tr');
-  const cells = [user.id, user.email, user.role, new Date(user.created_at).toLocaleString()];
+  const cells = [
+    user.id,
+    user.email,
+    user.role,
+    new Date(user.created_at).toLocaleString(),
+    user.api_calls,
+  ];
 
   for (const value of cells) {
     const cell = document.createElement('td');

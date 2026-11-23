@@ -3,6 +3,7 @@ import { getMe, getRecommendations, logoutUser } from './api.js';
 import { messages } from './messages.js';
 
 const emailSpan = document.getElementById('user-email');
+const apiCallsSpan = document.getElementById('api-calls');
 const likesBox = document.getElementById('likes');
 const avoidBox = document.getElementById('avoid');
 const findButton = document.getElementById('find-button');
@@ -72,6 +73,7 @@ async function loadUser() {
       return;
     }
     emailSpan.textContent = result.data.email;
+    apiCallsSpan.textContent = messages.apiCallsLabel + result.data.apiCalls;
   } catch (err) {
     showStatus(messages.networkError, true);
   }

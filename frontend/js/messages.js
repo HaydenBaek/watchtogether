@@ -11,5 +11,6 @@ export const messages = {
   loadingUsers: 'Loading users...',
   notAdmin: 'You do not have permission to view this page.',
   notLoggedIn: 'Please log in first.',
+  apiCallsLabel: 'API calls used: ',
   tmdbAttribution: 'This product uses the TMDB API but is not endorsed or certified by TMDB.',
 };
