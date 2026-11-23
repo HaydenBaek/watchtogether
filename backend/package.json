@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "seed": "node scripts/seed.js",
-    "download-model": "node scripts/downloadModel.js"
+    "download-model": "node scripts/downloadModel.js",
+    "db:setup": "node scripts/setupDb.js"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.0.0",
