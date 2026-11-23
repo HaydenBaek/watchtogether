@@ -1,6 +1,7 @@
 // Turns free text into movie genres using a self-hosted Hugging Face model.
 import { pipeline, env } from '@huggingface/transformers';
 import { fileURLToPath } from 'url';
+import path from 'path';
 import { config } from '../config.js';
 
 // Store model files in backend/models (works no matter which folder you start node from).
@@ -13,6 +14,18 @@ if (!config.allowModelDownload) {
 }
 
 export const MODEL_NAME = 'MoritzLaurer/deberta-v3-xsmall-zeroshot-v1.1-all-33';
+
+// 'q8' loads onnx/model_quantized.onnx (~87 MB) instead of the fp32 model.onnx (~280 MB),
+// so the server fits in a 512 MB free hosting plan.
+const MODEL_DTYPE = 'q8';
+
+// The exact file the server runs (shown at startup so we can point to it when marked).
+export const MODEL_FILE = path.join(MODELS_DIR, MODEL_NAME, 'onnx', 'model_quantized.onnx');
+
+// ONNX Runtime's graph optimizations turn the 8-bit weights back into 32-bit copies,
+// which costs ~100 MB of RAM. Turning them off keeps the server well under 512 MB
+// (measured on Linux: ~345 MB vs ~437 MB) with the same genres, at ~0.3 s per call instead of ~0.1 s.
+const SESSION_OPTIONS = { graphOptimizationLevel: 'disabled' };
 
 // Genre label -> TMDB genre ID.
 export const genreIds = {
@@ -39,7 +52,10 @@ let classifier = null;
 
 // Call this once when the server starts.
 export async function loadModel() {
-  classifier = await pipeline('zero-shot-classification', MODEL_NAME);
+  classifier = await pipeline('zero-shot-classification', MODEL_NAME, {
+    dtype: MODEL_DTYPE,
+    session_options: SESSION_OPTIONS,
+  });
 }
 
 // Returns genre names whose score is above the threshold.

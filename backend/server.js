@@ -4,7 +4,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { config } from './config.js';
 import { messages } from './messages.js';
-import { loadModel } from './services/aiModel.js';
+import { loadModel, MODEL_FILE } from './services/aiModel.js';
 import { authRouter } from './routes/auth.js';
 import { usersRouter } from './routes/users.js';
 import { adminRouter } from './routes/admin.js';
@@ -37,7 +37,7 @@ app.use((err, req, res, next) => {
 async function start() {
   console.log('Loading AI model...');
   await loadModel();
-  console.log('AI model ready.');
+  console.log(`AI model ready. Running local file: ${MODEL_FILE}`);
   app.listen(config.port, () => console.log(`Server running on port ${config.port}`));
 }
 
