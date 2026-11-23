@@ -17,6 +17,11 @@ app.use(cors({ origin: config.clientOrigin, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
+// Lets the host (and us) check that the server is up.
+app.get('/api/v1/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/users', usersRouter);
 app.use('/api/v1/admin', adminRouter);
