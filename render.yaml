@@ -1,0 +1,55 @@
+# Render Blueprint: deploys the API, the client and the database on Render's free plan.
+# Render dashboard -> New -> Blueprint -> pick this repo. You will be asked for TMDB_TOKEN.
+# Keep the service names below so the URLs are predictable:
+#   API:    https://watchtogether-api.onrender.com      (frontend/js/api.js PRODUCTION_API_URL)
+#   Client: https://watchtogether-client.onrender.com   (CLIENT_ORIGIN)
+services:
+  # API server (https://watchtogether-api-XXXX.onrender.com)
+  - type: web
+    name: watchtogether-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    # The model is downloaded into backend/models during the build...
+    buildCommand: npm ci && npm run download-model
+    # ...and the server only uses those local files (ALLOW_MODEL_DOWNLOAD=false).
+    # Runs node directly (not `npm start`): an npm wrapper process costs ~60 MB of the 512 MB.
+    startCommand: node scripts/setupDb.js && node server.js
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Skip onnxruntime-node's CUDA (GPU) download, which 404s and fails the build on Linux.
+      # (Same setting as backend/.npmrc, kept here too in case npm ignores .npmrc.)
+      - key: ONNXRUNTIME_NODE_INSTALL_CUDA
+        value: skip
+      - key: NODE_ENV
+        value: production
+      - key: ALLOW_MODEL_DOWNLOAD
+        value: "false"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: watchtogether-db
+          property: connectionString
+      - key: TMDB_TOKEN
+        sync: false
+      # The client's URL (no trailing slash). This is the URL Render gives the
+      # watchtogether-client service below. If Render adds a suffix (name taken),
+      # change this in the API's Environment tab AND PRODUCTION_API_URL in frontend/js/api.js.
+      - key: CLIENT_ORIGIN
+        value: https://watchtogether-client.onrender.com
+
+  # Client web app (static files) on a different origin
+  - type: web
+    name: watchtogether-client
+    runtime: static
+    rootDir: frontend
+    buildCommand: ""
+    staticPublishPath: .
+
+databases:
+  - name: watchtogether-db
+    plan: free
+    databaseName: watchtogether
