@@ -1,16 +1,18 @@
 // Turns free text into movie genres using a self-hosted Hugging Face model.
 import { pipeline, env } from '@huggingface/transformers';
+import { fileURLToPath } from 'url';
 import { config } from '../config.js';
 
-// Store model files in backend/models.
-env.cacheDir = './models';
+// Store model files in backend/models (works no matter which folder you start node from).
+export const MODELS_DIR = fileURLToPath(new URL('../models', import.meta.url));
+env.cacheDir = MODELS_DIR;
 
 // If downloads are turned off, only the local files can be used.
 if (!config.allowModelDownload) {
   env.allowRemoteModels = false;
 }
 
-const MODEL_NAME = 'MoritzLaurer/deberta-v3-xsmall-zeroshot-v1.1-all-33';
+export const MODEL_NAME = 'MoritzLaurer/deberta-v3-xsmall-zeroshot-v1.1-all-33';
 
 // Genre label -> TMDB genre ID.
 export const genreIds = {
