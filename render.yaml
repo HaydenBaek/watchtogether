@@ -15,7 +15,9 @@ services:
     # ...and the server only uses those local files (ALLOW_MODEL_DOWNLOAD=false).
     # Runs node directly (not `npm start`): an npm wrapper process costs ~60 MB of the 512 MB.
     startCommand: node scripts/setupDb.js && node server.js
-    healthCheckPath: /api/v1/health
+    # No healthCheckPath on purpose: on the free plan the AI model / bcrypt keep the CPU busy,
+    # so /health sometimes takes over 5 s and Render would kill the instance mid-request.
+    # (Check manually with /api/v1/health instead.)
     envVars:
       - key: NODE_VERSION
         value: "22"
