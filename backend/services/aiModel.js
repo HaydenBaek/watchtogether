@@ -2,16 +2,9 @@
 import { pipeline, env } from '@huggingface/transformers';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import { config } from '../config.js';
 
 // Store model files in backend/models (works no matter which folder you start node from).
 export const MODELS_DIR = fileURLToPath(new URL('../models', import.meta.url));
-env.cacheDir = MODELS_DIR;
-
-// If downloads are turned off, only the local files can be used.
-if (!config.allowModelDownload) {
-  env.allowRemoteModels = false;
-}
 
 export const MODEL_NAME = 'MoritzLaurer/deberta-v3-xsmall-zeroshot-v1.1-all-33';
 
@@ -27,47 +20,61 @@ export const MODEL_FILE = path.join(MODELS_DIR, MODEL_NAME, 'onnx', 'model_quant
 // (measured on Linux: ~345 MB vs ~437 MB) with the same genres, at ~0.3 s per call instead of ~0.1 s.
 const SESSION_OPTIONS = { graphOptimizationLevel: 'disabled' };
 
-// Genre label -> TMDB genre ID.
-export const genreIds = {
-  comedy: 35,
-  drama: 18,
-  action: 28,
-  horror: 27,
-  romance: 10749,
-  mystery: 9648,
-  thriller: 53,
-  'science fiction': 878,
-  animation: 16,
-  family: 10751,
-  documentary: 99,
-  adventure: 12,
-  fantasy: 14,
-  crime: 80,
-};
+export class GenreClassifier {
+  // Genre label -> TMDB genre ID.
+  static GENRE_IDS = {
+    comedy: 35,
+    drama: 18,
+    action: 28,
+    horror: 27,
+    romance: 10749,
+    mystery: 9648,
+    thriller: 53,
+    'science fiction': 878,
+    animation: 16,
+    family: 10751,
+    documentary: 99,
+    adventure: 12,
+    fantasy: 14,
+    crime: 80,
+  };
 
-const genreLabels = Object.keys(genreIds);
+  static LABELS = Object.keys(GenreClassifier.GENRE_IDS);
 
-// Holds the loaded model so we only load it once.
-let classifier = null;
-
-// Call this once when the server starts.
-export async function loadModel() {
-  classifier = await pipeline('zero-shot-classification', MODEL_NAME, {
-    dtype: MODEL_DTYPE,
-    session_options: SESSION_OPTIONS,
-  });
-}
-
-// Returns genre names whose score is above the threshold.
-// If none pass and useTopFallback is true, returns the single best genre.
-export async function detectGenres(text, useTopFallback) {
-  const result = await classifier(text, genreLabels, { multi_label: true });
-
-  // result.labels and result.scores are sorted from best to worst.
-  const passed = result.labels.filter((label, i) => result.scores[i] > config.genreThreshold);
-
-  if (passed.length === 0 && useTopFallback) {
-    return [result.labels[0]];
+  // Turns genre names into TMDB genre IDs (e.g. ['comedy'] -> [35]).
+  static toTmdbIds(genres) {
+    return genres.map((genre) => GenreClassifier.GENRE_IDS[genre]);
   }
-  return passed;
+
+  // threshold: labels scoring above this are kept.
+  // allowDownload: false means only the local files in backend/models can be used.
+  constructor(threshold, allowDownload) {
+    this.threshold = threshold;
+    this.allowDownload = allowDownload;
+    this.classifier = null; // the loaded model; stays null until load() runs
+  }
+
+  // Call this once when the server starts. Loading takes a few seconds.
+  async load() {
+    env.cacheDir = MODELS_DIR;
+    env.allowRemoteModels = this.allowDownload;
+    this.classifier = await pipeline('zero-shot-classification', MODEL_NAME, {
+      dtype: MODEL_DTYPE,
+      session_options: SESSION_OPTIONS,
+    });
+  }
+
+  // Returns genre names whose score is above the threshold.
+  // If none pass and useTopFallback is true, returns the single best genre.
+  async detectGenres(text, useTopFallback) {
+    const result = await this.classifier(text, GenreClassifier.LABELS, { multi_label: true });
+
+    // result.labels and result.scores are sorted from best to worst.
+    const passed = result.labels.filter((label, i) => result.scores[i] > this.threshold);
+
+    if (passed.length === 0 && useTopFallback) {
+      return [result.labels[0]];
+    }
+    return passed;
+  }
 }

@@ -1,6 +1,7 @@
 // Creates the demo accounts. Safe to run more than once.
-import bcrypt from 'bcrypt';
-import { pool } from '../db.js';
+import { config } from '../config.js';
+import { Database } from '../db.js';
+import { Auth } from '../middleware/auth.js';
 
 const demoUsers = [
   { email: 'john@john.com', password: '123', role: 'user' },
@@ -8,16 +9,16 @@ const demoUsers = [
 ];
 
 async function seed() {
+  const db = new Database(config.databaseUrl);
+  const auth = new Auth(config); // same password hashing as /auth/register
+
   for (const user of demoUsers) {
-    const hash = await bcrypt.hash(user.password, 10);
-    // ON CONFLICT DO NOTHING skips accounts that already exist.
-    const result = await pool.query(
-      'INSERT INTO users (email, password_hash, role) VALUES ($1, $2, $3) ON CONFLICT (email) DO NOTHING',
-      [user.email, hash, user.role]
-    );
-    console.log(`${user.email}: ${result.rowCount ? 'created' : 'already exists'}`);
+    const hash = await auth.hashPassword(user.password);
+    // Accounts that already exist are skipped.
+    const created = await db.createUser(user.email, hash, user.role);
+    console.log(`${user.email}: ${created ? 'created' : 'already exists'}`);
   }
-  await pool.end();
+  await db.close();
 }
 
 seed().catch((err) => {
