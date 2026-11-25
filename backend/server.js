@@ -1,52 +1,35 @@
-// Starts the Express server.
-import express from 'express';
-import cors from 'cors';
-import cookieParser from 'cookie-parser';
-import { config } from './config.js';
-import { messages } from './messages.js';
-import { loadModel, MODEL_FILE } from './services/aiModel.js';
-import { authRouter } from './routes/auth.js';
-import { usersRouter } from './routes/users.js';
-import { adminRouter } from './routes/admin.js';
-import { recommendationsRouter } from './routes/recommendations.js';
+// Starts the server: checks the settings, builds the real objects, and listens.
+// The app itself (routes, middleware) is in app.js.
+import { config, checkRequiredConfig } from './config.js';
+import { App } from './app.js';
+import { Database } from './db.js';
+import { Auth } from './middleware/auth.js';
+import { GenreClassifier } from './services/aiModel.js';
+import { TmdbClient } from './services/tmdb.js';
 
-const app = express();
+checkRequiredConfig();
 
-// Only our frontend may call this API, and it may send cookies.
-app.use(cors({ origin: config.clientOrigin, credentials: true }));
-app.use(express.json());
-app.use(cookieParser());
+const app = new App(
+  new Database(config.databaseUrl),
+  new Auth(config),
+  new GenreClassifier(config.genreThreshold, config.allowModelDownload),
+  new TmdbClient(config.tmdbToken, config.tmdbTimeoutMs, config.movieCount, config.tmdbCacheMs, config.tmdbCacheSize)
+);
 
-// Lets the host (and us) check that the server is up.
-app.get('/api/v1/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
-
-app.use('/api/v1/auth', authRouter);
-app.use('/api/v1/users', usersRouter);
-app.use('/api/v1/admin', adminRouter);
-app.use('/api/v1/recommendations', recommendationsRouter);
-
-// Unknown routes.
-app.use((req, res) => {
-  res.status(404).json({ error: messages.notFound });
-});
-
-// Catches anything else that went wrong (e.g. bad JSON in the request body).
-app.use((err, req, res, next) => {
-  const status = err.status || 500;
-  res.status(status).json({ error: status === 400 ? messages.badRequest : messages.serverError });
-});
-
-// Load the model first, then start listening.
-async function start() {
-  console.log('Loading AI model...');
-  await loadModel();
-  console.log(`AI model ready. Running local file: ${MODEL_FILE}`);
-  app.listen(config.port, () => console.log(`Server running on port ${config.port}`));
-}
-
-start().catch((err) => {
+app.start(config.port).catch((err) => {
   console.error(err);
   process.exit(1);
 });
+
+// SIGTERM: the host is stopping us. SIGINT: Ctrl+C in the terminal.
+for (const signal of ['SIGTERM', 'SIGINT']) {
+  process.on(signal, () => {
+    console.log(`${signal} received, shutting down...`);
+    app.stop()
+      .then(() => process.exit(0))
+      .catch((err) => {
+        console.error(err);
+        process.exit(1);
+      });
+  });
+}

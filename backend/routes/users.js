@@ -1,33 +1,25 @@
 // Info about the logged-in user.
 import express from 'express';
-import { pool } from '../db.js';
 import { messages } from '../messages.js';
-import { requireAuth } from '../middleware/requireAuth.js';
 
-export const usersRouter = express.Router();
+export class UserRoutes {
+  constructor(db, auth) {
+    this.db = db;
 
-usersRouter.get('/me', requireAuth, async (req, res) => {
-  try {
-    // Log this call for Milestone 2.
-    await pool.query(
-      'INSERT INTO api_usage (user_id, method, endpoint) VALUES ($1, $2, $3)',
-      [req.user.id, 'GET', '/users/me']
-    );
+    // Unexpected errors are passed to next(), and the error handler in app.js answers with a 500.
+    this.router = express.Router();
+    this.router.get('/me', auth.requireAuth, (req, res, next) => this.getMe(req, res).catch(next));
+  }
+
+  async getMe(req, res) {
+    // Log this call for the API usage stats.
+    await this.db.logApiCall(req.user.id, 'GET', '/users/me');
 
     // Also counts how many API calls this user has made (shown on the user page).
-    const result = await pool.query(
-      `SELECT u.email, u.role, COUNT(a.id)::int AS "apiCalls"
-       FROM users u LEFT JOIN api_usage a ON a.user_id = u.id
-       WHERE u.id = $1
-       GROUP BY u.id`,
-      [req.user.id]
-    );
-    if (result.rows.length === 0) {
+    const profile = await this.db.getProfile(req.user.id);
+    if (!profile) {
       return res.status(404).json({ error: messages.userNotFound });
     }
-    res.status(200).json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: messages.serverError });
+    res.status(200).json(profile);
   }
-});
+}

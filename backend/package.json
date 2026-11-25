@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "test": "node --test",
     "seed": "node scripts/seed.js",
     "download-model": "node scripts/downloadModel.js",
     "db:setup": "node scripts/setupDb.js"
