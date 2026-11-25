@@ -9,7 +9,7 @@ export class AuthRoutes {
     this.db = db;
     this.auth = auth;
 
-    // Unexpected errors are passed to next(), and the error handler in server.js answers with a 500.
+    // Unexpected errors are passed to next(), and the error handler in app.js answers with a 500.
     this.router = express.Router();
     this.router.post('/register', (req, res, next) => this.register(req, res).catch(next));
     this.router.post('/login', (req, res, next) => this.login(req, res).catch(next));

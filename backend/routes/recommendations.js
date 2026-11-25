@@ -10,7 +10,7 @@ export class RecommendationRoutes {
     this.classifier = classifier;
     this.tmdb = tmdb;
 
-    // Unexpected errors are passed to next(), and the error handler in server.js answers with a 500.
+    // Unexpected errors are passed to next(), and the error handler in app.js answers with a 500.
     this.router = express.Router();
     this.router.post('/', auth.requireAuth, (req, res, next) => this.recommend(req, res).catch(next));
   }

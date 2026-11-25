@@ -80,6 +80,12 @@ Cookies with `sameSite: lax` work between `localhost:5500` and `localhost:4537` 
 
 If something else already uses your port, you'll see `EADDRINUSE`. Pick another `PORT` and update `api.js`.
 
+**Tests:**
+```
+npm test
+```
+The tests in `test/` run the real app with fakes for the database, the AI model and TMDB, so they don't need `.env`, Postgres, the model files or a TMDB token. GitHub runs them on every pull request.
+
 ## 7. Deploy (Render, free plan)
 `render.yaml` in the repo root describes all three pieces: the API (Node web service), the client (static site, a different origin) and a PostgreSQL database.
 
